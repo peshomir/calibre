@@ -1,0 +1,77 @@
+name: Arch build with release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for the GitHub release"
+        required: false
+        type: string
+      release_name:
+        description: "Release title"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on Arch
+    runs-on: ubuntu-latest
+
+    container:
+      image: archlinux/archlinux:latest
+      env:
+        CI: "true"
+
+    timeout-minutes: 720
+
+    steps:
+      - name: Update container and install basic tools
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git sudo tar python nodejs npm
+
+      - name: Checkout source code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 10
+          persist-credentials: false
+
+      - name: Install calibre dependencies
+        run: setup/arch-ci.sh
+
+      - name: Bootstrap calibre
+        run: runuser -u ci -- python setup.py bootstrap --ephemeral --debug --sanitize
+
+      - name: Build Intel dependencies
+        run: runuser -u ci -- python setup.py build_dep linux
+
+      - name: Build ARM dependencies
+        run: runuser -u ci -- python setup.py build_dep linux-arm64
+
+      - name: Build calibre Linux tarballs
+        run: runuser -u ci -- python setup.py linux
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibre-arch-build-${{ github.run_number }}
+          path: |
+            dist/**
+            bypy/b/linux/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name || format('arch-build-{0}', github.run_number) }}
+          name: ${{ inputs.release_name || format('Arch build {0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            dist/**
+            bypy/b/linux/**
+          generate_release_notes: true
+          fail_on_unmatched_files: true
