@@ -53,7 +53,7 @@ from calibre.ptempfile import PersistentTemporaryFile
 from calibre.ptempfile import force_unicode as filename_to_unicode
 from calibre.startup import connect_lambda
 from calibre.utils.config import device_prefs, tweaks
-from calibre.utils.filenames import ascii_filename
+from calibre.utils.filenames import unicode_filename as ascii_filename
 from calibre.utils.img import scale_image
 from calibre.utils.ipc.job import BaseJob
 from calibre.utils.localization import ngettext
