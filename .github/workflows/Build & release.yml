@@ -33,25 +33,35 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm git sudo tar python nodejs npm
 
-      - name: Checkout source code
+      - name: Checkout calibre source code
         uses: actions/checkout@v6
         with:
           fetch-depth: 10
           persist-credentials: false
+          path: calibre
+
+      - name: Clone bypy alongside calibre
+        working-directory: ${{ github.workspace }}
+        run: git clone https://github.com/kovidgoyal/bypy.git
 
       - name: Install calibre dependencies
+        working-directory: calibre
         run: setup/arch-ci.sh
 
       - name: Bootstrap calibre
+        working-directory: calibre
         run: runuser -u ci -- python setup.py bootstrap --ephemeral --debug --sanitize
 
       - name: Build Intel dependencies
+        working-directory: calibre
         run: runuser -u ci -- python setup.py build_dep linux
 
       - name: Build ARM dependencies
+        working-directory: calibre
         run: runuser -u ci -- python setup.py build_dep linux-arm64
 
       - name: Build calibre Linux tarballs
+        working-directory: calibre
         run: runuser -u ci -- python setup.py linux
 
       - name: Upload build artifacts
@@ -59,7 +69,7 @@ jobs:
         with:
           name: calibre-arch-build-${{ github.run_number }}
           path: |
-            dist/**
+            calibre/dist/**
             bypy/b/linux/**
           if-no-files-found: error
           retention-days: 14
@@ -71,7 +81,7 @@ jobs:
           name: ${{ inputs.release_name || format('Arch build {0}', github.run_number) }}
           target_commitish: ${{ github.sha }}
           files: |
-            dist/**
+            calibre/dist/**
             bypy/b/linux/**
           generate_release_notes: true
           fail_on_unmatched_files: true
