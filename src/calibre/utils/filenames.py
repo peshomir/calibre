@@ -37,6 +37,12 @@ def ascii_filename(orig, substitute='_'):
     return sanitize_file_name(ans, substitute=substitute)
 
 
+def unicode_filename(orig, substitute='_'):
+    if isinstance(substitute, bytes):
+        substitute = substitute.decode(filesystem_encoding)
+    return sanitize_file_name(orig, substitute=substitute)
+
+
 def shorten_component(s, by_what):
     l = len(s)
     if l < by_what:
